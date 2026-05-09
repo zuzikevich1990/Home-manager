@@ -1,0 +1,10 @@
+{
+  "name": "Домашний менеджмент",
+  "short_name": "Дом",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f7f2ea",
+  "theme_color": "#f7f2ea",
+  "lang": "ru",
+  "icons": []
+}

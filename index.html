@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7f2ea" />
+    <title>Домашний менеджмент</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Семейный дашборд</p>
+          <h1>Дом</h1>
+        </div>
+        <div class="today" id="today"></div>
+      </header>
+
+      <section class="dashboard" aria-label="Виджеты">
+        <article class="widget widget-watch" data-widget-id="watch">
+          <header class="widget-header">
+            <div>
+              <p class="widget-kicker">Заметки</p>
+              <h2>Что смотрим</h2>
+            </div>
+            <span class="counter" data-counter>0</span>
+          </header>
+
+          <form class="note-form" data-note-form>
+            <label class="sr-only" for="watch-note">Новая заметка</label>
+            <textarea id="watch-note" name="note" rows="3" placeholder="Фильм, сериал, ссылка, чей выбор"></textarea>
+            <button type="submit">Добавить</button>
+          </form>
+
+          <div class="notes-list" data-notes-list></div>
+        </article>
+
+        <article class="widget widget-cactus" data-widget-id="cactus">
+          <header class="widget-header">
+            <div>
+              <p class="widget-kicker">Заметки</p>
+              <h2>Кактус</h2>
+            </div>
+            <span class="counter" data-counter>0</span>
+          </header>
+
+          <form class="note-form" data-note-form>
+            <label class="sr-only" for="cactus-note">Новая заметка</label>
+            <textarea id="cactus-note" name="note" rows="3" placeholder="Корм, здоровье, покупки, наблюдения"></textarea>
+            <button type="submit">Добавить</button>
+          </form>
+
+          <div class="notes-list" data-notes-list></div>
+        </article>
+      </section>
+    </main>
+
+    <template id="note-template">
+      <section class="note">
+        <p class="note-text"></p>
+        <div class="note-footer">
+          <time></time>
+          <button type="button" class="ghost-button" data-delete>Удалить</button>
+        </div>
+      </section>
+    </template>
+
+    <script src="app.js" type="module"></script>
+  </body>
+</html>
