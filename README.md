@@ -34,7 +34,8 @@ npm run build
 1. В Supabase откройте SQL Editor и выполните `supabase-schema.sql`.
 2. Для локальной разработки скопируйте `config.example.js` в `config.js`.
 3. В `config.js` укажите `Project URL` и `anon public key` из Supabase.
-4. В Vercel добавьте переменные окружения `SUPABASE_URL` и `SUPABASE_ANON_KEY`.
+4. В Vercel добавьте переменные окружения `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `TELEGRAM_BOT_TOKEN` и `ALLOWED_TELEGRAM_IDS`.
 5. В BotFather добавьте Vercel-домен приложения как Mini App URL.
+6. После проверки API выполните `supabase-secure-access.sql`, чтобы закрыть публичный доступ к таблице.
 
 `config.js` не коммитится в git. Для Vercel он создается автоматически во время `npm run build`.

@@ -5,11 +5,6 @@ const defaultState = {
   cactus: [],
 };
 
-const widgetLabels = {
-  watch: "Что смотрим",
-  cactus: "Кактус",
-};
-
 const formatDate = new Intl.DateTimeFormat("ru-RU", {
   day: "numeric",
   month: "long",
@@ -25,8 +20,9 @@ const todayFormatter = new Intl.DateTimeFormat("ru-RU", {
 
 const telegram = window.Telegram?.WebApp;
 const config = await loadConfig();
-const hasSupabase = Boolean(config?.supabaseUrl && config?.supabaseAnonKey);
-const state = hasSupabase ? { ...defaultState } : loadLocalState();
+const hasTelegramSession = Boolean(telegram?.initData);
+const useSecureApi = Boolean(config?.secureApi && hasTelegramSession);
+const state = useSecureApi ? { ...defaultState } : loadLocalState();
 
 setupTelegram();
 setupHeader();
@@ -46,15 +42,24 @@ document.querySelectorAll("[data-widget-id]").forEach((widget) => {
       return;
     }
 
-    const note = await createNote(widgetId, text);
+    try {
+      form.querySelector("button").disabled = true;
+      const note = await createNote(widgetId, text);
 
-    state[widgetId].unshift(note);
-    if (!hasSupabase) {
-      saveLocalState();
+      state[widgetId].unshift(note);
+
+      if (!useSecureApi) {
+        saveLocalState();
+      }
+
+      form.reset();
+      renderWidget(widget);
+      telegram?.HapticFeedback?.notificationOccurred?.("success");
+    } catch (error) {
+      showAccessError(error);
+    } finally {
+      form.querySelector("button").disabled = false;
     }
-    form.reset();
-    renderWidget(widget);
-    telegram?.HapticFeedback?.notificationOccurred?.("success");
   });
 
   renderWidget(widget);
@@ -77,8 +82,10 @@ function setupTelegram() {
   document.body.classList.add("telegram-mini-app");
   telegram.ready();
   telegram.expand();
-  telegram.setHeaderColor("#f7f2ea");
-  telegram.setBackgroundColor("#f7f2ea");
+
+  const backgroundColor = telegram.themeParams?.bg_color || "#f7f2ea";
+  telegram.setHeaderColor(backgroundColor);
+  telegram.setBackgroundColor(backgroundColor);
 }
 
 function setupHeader() {
@@ -87,38 +94,36 @@ function setupHeader() {
   const status = document.querySelector("#app-status");
   const userName = telegram?.initDataUnsafe?.user?.first_name;
 
-  if (hasSupabase) {
-    status.textContent = userName ? `Telegram: ${userName}` : "Общая база";
+  if (useSecureApi) {
+    status.textContent = userName ? `Telegram: ${userName}` : "Telegram";
     status.classList.add("is-online");
     return;
   }
 
-  status.textContent = telegram ? "Telegram, локально" : "Локальный режим";
+  status.textContent = telegram ? "Telegram, демо" : "Локальный демо";
 }
 
 async function loadInitialNotes() {
-  if (!hasSupabase) {
+  if (!useSecureApi) {
     return;
   }
 
   try {
-    const notes = await supabaseRequest("/rest/v1/notes?select=*&order=created_at.desc");
+    const notes = await apiRequest("/api/notes");
 
     Object.keys(defaultState).forEach((widgetId) => {
       state[widgetId] = [];
     });
 
     notes.forEach((note) => {
-      if (!state[note.widget_id]) {
-        state[note.widget_id] = [];
+      if (!state[note.widgetId]) {
+        state[note.widgetId] = [];
       }
 
-      state[note.widget_id].push(mapRemoteNote(note));
+      state[note.widgetId].push(note);
     });
   } catch (error) {
-    console.error(error);
-    Object.assign(state, loadLocalState());
-    document.querySelector("#app-status").textContent = "База недоступна";
+    showAccessError(error);
   }
 }
 
@@ -146,57 +151,46 @@ async function createNote(widgetId, text) {
     createdAt: new Date().toISOString(),
   };
 
-  if (!hasSupabase) {
+  if (!useSecureApi) {
     return fallbackNote;
   }
 
-  const telegramUser = telegram?.initDataUnsafe?.user;
-  const [remoteNote] = await supabaseRequest("/rest/v1/notes?select=*", {
+  return apiRequest("/api/notes", {
     method: "POST",
     body: JSON.stringify({
-      widget_id: widgetId,
-      widget_label: widgetLabels[widgetId],
+      widgetId,
       text,
-      telegram_user_id: telegramUser?.id || null,
-      telegram_first_name: telegramUser?.first_name || null,
     }),
-    headers: {
-      Prefer: "return=representation",
-    },
   });
-
-  return mapRemoteNote(remoteNote);
 }
 
 async function deleteNote(widgetId, noteId) {
-  if (hasSupabase) {
-    await supabaseRequest(`/rest/v1/notes?id=eq.${noteId}`, {
+  if (useSecureApi) {
+    await apiRequest(`/api/notes?id=${encodeURIComponent(noteId)}`, {
       method: "DELETE",
     });
   }
 
   state[widgetId] = state[widgetId].filter((item) => item.id !== noteId);
 
-  if (!hasSupabase) {
+  if (!useSecureApi) {
     saveLocalState();
   }
 }
 
-async function supabaseRequest(path, options = {}) {
-  const headers = {
-    apikey: config.supabaseAnonKey,
-    Authorization: `Bearer ${config.supabaseAnonKey}`,
-    "Content-Type": "application/json",
-    ...(options.headers || {}),
-  };
-
-  const response = await fetch(`${config.supabaseUrl}${path}`, {
+async function apiRequest(path, options = {}) {
+  const response = await fetch(path, {
     ...options,
-    headers,
+    headers: {
+      "Content-Type": "application/json",
+      "X-Telegram-Init-Data": telegram.initData,
+      ...(options.headers || {}),
+    },
   });
 
   if (!response.ok) {
-    throw new Error(`Supabase request failed: ${response.status}`);
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.error || `Request failed: ${response.status}`);
   }
 
   if (response.status === 204) {
@@ -206,14 +200,18 @@ async function supabaseRequest(path, options = {}) {
   return response.json();
 }
 
-function mapRemoteNote(note) {
-  return {
-    id: note.id,
-    widgetId: note.widget_id,
-    text: note.text,
-    createdAt: note.created_at,
-    author: note.telegram_first_name,
-  };
+function showAccessError(error) {
+  console.error(error);
+
+  const status = document.querySelector("#app-status");
+  const userId = telegram?.initDataUnsafe?.user?.id;
+
+  status.textContent = userId ? `Нет доступа: ${userId}` : "Нет доступа";
+  status.classList.remove("is-online");
+  status.classList.add("is-error");
+  document.querySelectorAll(".note-form button").forEach((button) => {
+    button.disabled = true;
+  });
 }
 
 function renderWidget(widget) {
@@ -229,7 +227,9 @@ function renderWidget(widget) {
   if (!notes.length) {
     const empty = document.createElement("p");
     empty.className = "empty-state";
-    empty.textContent = "Пока пусто. Добавьте первую заметку.";
+    empty.textContent = useSecureApi
+      ? "Пока пусто. Добавьте первую семейную заметку."
+      : "Демо-режим: заметки сохраняются только в этом браузере.";
     list.append(empty);
     return;
   }
@@ -247,10 +247,14 @@ function renderWidget(widget) {
       : formatDate.format(new Date(note.createdAt));
 
     deleteButton.addEventListener("click", async () => {
-      deleteButton.disabled = true;
-      await deleteNote(widgetId, note.id);
-      renderWidget(widget);
-      telegram?.HapticFeedback?.impactOccurred?.("light");
+      try {
+        deleteButton.disabled = true;
+        await deleteNote(widgetId, note.id);
+        renderWidget(widget);
+        telegram?.HapticFeedback?.impactOccurred?.("light");
+      } catch (error) {
+        showAccessError(error);
+      }
     });
 
     list.append(noteElement);
