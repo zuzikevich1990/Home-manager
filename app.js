@@ -206,7 +206,7 @@ function showAccessError(error) {
   const status = document.querySelector("#app-status");
   const userId = telegram?.initDataUnsafe?.user?.id;
 
-  status.textContent = userId ? `Нет доступа: ${userId}` : "Нет доступа";
+  status.textContent = error?.message || (userId ? `Нет доступа: ${userId}` : "Нет доступа");
   status.classList.remove("is-online");
   status.classList.add("is-error");
   document.querySelectorAll(".note-form button").forEach((button) => {

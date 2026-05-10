@@ -108,7 +108,7 @@ h1 {
 
 .status-pill {
   width: max-content;
-  max-width: 180px;
+  max-width: min(100%, 420px);
   border: 1px solid var(--line);
   border-radius: 999px;
   background: rgba(255, 253, 248, 0.78);
@@ -117,6 +117,7 @@ h1 {
   font-size: 0.82rem;
   font-weight: 700;
   text-align: right;
+  overflow-wrap: anywhere;
 }
 
 .status-pill.is-online {
@@ -315,6 +316,7 @@ button:active {
   .topbar-meta {
     padding-top: 4px;
     justify-items: start;
+    width: 100%;
   }
 
   .dashboard {
