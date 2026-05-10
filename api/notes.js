@@ -167,12 +167,7 @@ function safeEqual(left, right) {
 }
 
 function parseAllowedIds(value) {
-  return new Set(
-    value
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean),
-  );
+  return new Set(value.match(/\d+/g) || []);
 }
 
 async function supabaseRequest(path, options = {}) {
