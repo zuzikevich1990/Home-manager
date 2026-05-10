@@ -7,6 +7,7 @@
     <title>Домашний менеджмент</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="stylesheet" href="styles.css" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
   </head>
   <body>
     <main class="app-shell">
@@ -14,8 +15,12 @@
         <div>
           <p class="eyebrow">Семейный дашборд</p>
           <h1>Дом</h1>
+          <p class="subtitle">Общие заметки семьи в Telegram Mini App</p>
         </div>
-        <div class="today" id="today"></div>
+        <div class="topbar-meta">
+          <div class="today" id="today"></div>
+          <div class="status-pill" id="app-status">Локальный режим</div>
+        </div>
       </header>
 
       <section class="dashboard" aria-label="Виджеты">
