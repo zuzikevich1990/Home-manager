@@ -101,13 +101,20 @@ function authenticateTelegram(request) {
     return { ok: false, status: 401, error: verification.error };
   }
 
-  const allowedIds = parseAllowedIds(process.env.ALLOWED_TELEGRAM_IDS || "");
+  const allowedIds = parseAllowedIds(
+    [
+      process.env.ALLOWED_TELEGRAM_IDS,
+      process.env.ALLOWED_TELEGRAM_ID,
+      process.env.TELEGRAM_ALLOWED_IDS,
+      process.env.FAMILY_TELEGRAM_IDS,
+    ].join(","),
+  );
 
   if (!allowedIds.has(String(verification.user.id))) {
     return {
       ok: false,
       status: 403,
-      error: `Access denied for Telegram user ID ${verification.user.id}`,
+      error: `Access denied for Telegram user ID ${verification.user.id}. Allowlist has ${allowedIds.size} ID(s).`,
     };
   }
 
